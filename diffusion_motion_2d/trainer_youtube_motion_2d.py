@@ -1520,25 +1520,6 @@ class Trainer(object):
                         de_direct_sampled_pred_2d_for_vis = self.gen_multiview_vis_res(direct_sampled_seq_2d_for_vis[bs_idx:bs_idx+1], \
                             vis_folder_tag, actual_seq_len[bs_idx:bs_idx+1], \
                             dest_vis_data_folder=dest_res3d_npy_folder, file_name_tag="_direct_sampled")
-
-                        vis_for_paper = False 
-                        if vis_for_paper:
-                            dest_for_paper_vis_folder = "./for_cvpr25_paper_method_figure_rough_consistent_2d"
-                            if not os.path.exists(dest_for_paper_vis_folder):
-                                os.makedirs(dest_for_paper_vis_folder) 
-
-                            # Plot for multi-view 2D sequences 
-                            num_views = direct_sampled_seq_2d_for_vis[0].shape[0] 
-                            num_steps = direct_sampled_seq_2d_for_vis[0].shape[1] 
-                            for view_idx in range(num_views):
-                                for t_idx in range(0, num_steps, 20):
-                                    dest_pose2d_fig_path = os.path.join(dest_for_paper_vis_folder, \
-                                        "s_idx_"+str(s_idx)+"_bs_idx_"+str(bs_idx)+"_pose2d_"+"view_"+str(view_idx)+"_t_"+str(t_idx)+".png") 
-                                    plot_pose_2d_for_paper(direct_sampled_seq_2d_for_vis[0][view_idx, t_idx].reshape(-1, 2).detach().cpu().numpy(), \
-                                    dest_pose2d_fig_path) 
-
-                            import pdb 
-                            pdb.set_trace() 
                         
                         de_pred_2d_for_vis = self.gen_multiview_vis_res(pred_for_vis, vis_folder_tag, \
                             actual_seq_len[bs_idx:bs_idx+1], \

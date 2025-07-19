@@ -38,9 +38,9 @@ python setup.py develop
 ### Prerequisites 
 Please download [SMPL-X](https://smpl-x.is.tue.mpg.de/index.html) and put the model to ```data/smpl_all_models/```.
 
-If you would like to generate visualizations, please download [Blender](https://www.blender.org/download/) first. And modify ```BLENDER_PATH, BLENDER_UTILS_ROOT_FOLDER, BLENDER_SCENE_FOLDER``` in line 8-10 of ```chois_release/manip/vis/blender_vis_mesh_motion.py```. 
+If you would like to generate visualizations, please download [Blender](https://www.blender.org/download/) first. And modify ```BLENDER_PATH, BLENDER_UTILS_ROOT_FOLDER, BLENDER_SCENE_FOLDER``` in line 8-10 of ```mvlift_release/diffusion_motion_2d/m2d/vis/blender_vis_mesh_motion.py```. 
 
-Please download all the [data](https://drive.google.com/file/d/1ZG-9--RfUWj5oWYnvcONNuRuxaH_Zpw1/view?usp=sharing) and put ```processed_data``` to your desired location ```your_path/processed_data```.  
+Please download all the [data]() and put ```processed_data``` to your desired location ```your_path/processed_data```.  
 
 ### Datasets 
 
@@ -67,4 +67,8 @@ sh step3_train_multiview_2d_diffusion.sh
 ```
 cd aist_scripts/
 sh step4_eval_multiview_2d_diffusion.sh 
+```
+To generate skeleton visualization and prepare human meshes for Blender visualization, disable --eval_w_best_mpjpe. For using Blender to generate visualization, please modify the path in diffusion_motion_2d/m2d/vis/gen_blender_vis_res.py.And you will be able to produce Blender visualization. 
+```
+python gen_blender_vis_res.py
 ```

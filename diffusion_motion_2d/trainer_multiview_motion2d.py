@@ -29,6 +29,7 @@ from ema_pytorch import EMA
 from multiprocessing import cpu_count
 
 from m2d.data.youtube_motion2d_dataset import YoutubeMotion2D
+
 from m2d.data.aist_motion3d_dataset import AISTPose3D, run_smpl_forward, convert_smpl_jnts_to_openpose18, convert_h36m17_to_openpose18, convert_coco17_to_openpose18 
 
 from m2d.data.omomo_2d_dataset import OMOMODataset 
@@ -673,7 +674,7 @@ class Trainer(object):
     def prep_vis_res_folder(self):
         # dest_res3d_root_folder = "/viscam/projects/mofitness/final_cvpr25_opt_3d_w_multiview_diffusion"
 
-        dest_res3d_root_folder = "/move/u/jiamanli/final_cvpr25_opt_3d_w_multiview_diffusion"
+        dest_res3d_root_folder = "./mvlift_res_opt_3d_w_multiview_diffusion"
 
         if "AIST" in self.youtube_data_npz_folder:
             dest_res3d_npy_folder = os.path.join(dest_res3d_root_folder, "AIST")
@@ -682,13 +683,13 @@ class Trainer(object):
         elif "steezy" in self.youtube_data_npz_folder:
             dest_res3d_npy_folder = os.path.join(dest_res3d_root_folder, "steezy")
         elif "cat" in self.youtube_data_npz_folder:
-            dest_res3d_npy_folder = os.path.join(dest_res3d_root_folder, "cat_data_final_debug")
+            dest_res3d_npy_folder = os.path.join(dest_res3d_root_folder, "cat")
 
         if self.opt.eval_on_aist_3d:
             dest_res3d_npy_folder = os.path.join(dest_res3d_root_folder, "AIST") 
 
         if self.use_omomo_data:
-            dest_res3d_npy_folder = os.path.join(dest_res3d_root_folder, "omomo_data")
+            dest_res3d_npy_folder = os.path.join(dest_res3d_root_folder, "omomo")
 
         if not self.eval_w_best_mpjpe:
             dest_res3d_npy_folder += "_for_vis"
@@ -770,18 +771,6 @@ class Trainer(object):
 
             sub_idx = int(npz_name.split("_sub_")[1].split("_")[0])
 
-        else:
-            if "bb_data" in self.youtube_data_npz_folder:
-                wham_res_folder = "/viscam/projects/mofitness/datasets/bb_data/ori_video_wham_res_complete"
-            elif "FineGym" in self.youtube_data_npz_folder:
-                wham_res_folder = "/viscam/projects/vimotion/datasets/FineGym/manual_selected_clips_wham_res_complete"
-
-            ori_video_name = npz_name.split("_sub")[0]
-            ori_wham_res_path = os.path.join(wham_res_folder, ori_video_name, "wham_output.pkl")
-            ori_seq_wham_data = joblib.load(ori_wham_res_path)
-
-            sub_idx = int(npz_name.split("_sub_")[1].split("_")[0])
-
         curr_sub_wham_data = ori_seq_wham_data[sub_idx]
         # dict_keys(['pose', 'trans', 'pose_world', 'trans_world', 'betas', 'verts', 'frame_ids'])
 
@@ -789,10 +778,7 @@ class Trainer(object):
         # wham_local_trans = curr_sub_wham_data['trans'][start_idx:end_idx]
 
         wham_world_poses = curr_sub_wham_data["pose_world"][start_idx:end_idx]
-        if "bb_data" in self.youtube_data_npz_folder:
-            wham_world_trans = curr_sub_wham_data["trans_world"][start_idx:end_idx]/5.5 # Heuristic scaling from adult to baby, based on scaling 1 scale
-        else:
-            wham_world_trans = curr_sub_wham_data["trans_world"][start_idx:end_idx]
+        wham_world_trans = curr_sub_wham_data["trans_world"][start_idx:end_idx]
 
         wham_world_poses = torch.from_numpy(wham_world_poses).float()
         wham_world_trans = torch.from_numpy(wham_world_trans).float()
@@ -832,10 +818,6 @@ class Trainer(object):
 
             # Convert SMPL to COCO 18 
             motionbert_jnts18 = convert_smpl_jnts_to_openpose18(motionbert_jnts3d_h36m) # T X 18 X 3 
-
-        elif "FineGym" in self.youtube_data_npz_folder:
-            motionbert_res_folder = "/viscam/projects/vimotion/datasets/FineGym/MotionBert_results_mesh"
-            motionbert_jnts3d_data_path = os.path.join(motionbert_res_folder, seq_name+".npy")
         elif "nicole" in self.youtube_data_npz_folder:
             motionbert_res_folder = "/viscam/projects/mofitness/datasets/nicole_move/MotionBert_results_mesh" 
             motionbert_jnts3d_data_path = os.path.join(motionbert_res_folder, seq_name+".npy")
@@ -1837,11 +1819,6 @@ class Trainer(object):
 
         milestone = weight_path.split("/")[-1].split("-")[-1].replace(".pt", "")
         milestone = "3"
-        # milestone = "4"
-        # milestone = "2" # MPJPE: 119.9 
-        # milestone = "1"
-        # if self.eval_on_aist_3d:
-        #     milestone = "3" 
 
         self.load(milestone)
         self.ema.ema_model.eval()
@@ -1995,37 +1972,7 @@ class Trainer(object):
                                 cam_rot_mat[bs_idx], cam_trans[bs_idx], \
                                 pred_smpl_jnts18.to(cam_rot_mat.device)*scale_val_list[bs_idx]) # K X T X (18*2)
                 pred_for_vis = reprojected_pred_jnts2d_list.reshape(1, val_num_views, -1, 18*2)  
-
-                vis_for_paper = False 
-                if vis_for_paper:
-                    dest_for_paper_vis_folder = "./final_day_for_cvpr25_paper_res_figure"
-                    if not os.path.exists(dest_for_paper_vis_folder):
-                        os.makedirs(dest_for_paper_vis_folder) 
-
-                    # pose_sequence = epi_line_cond_seq_2d 
-                    # line_coeffs =  
-                    # visualize_pose_and_lines_for_paper(pose_sequence, line_coeffs, output_folder, vis_gt=False, epipoles=None)
-                    
-                    # Plot for single pose 
-                    # num_steps = reprojected_pred_jnts2d_list.shape[1] 
-                    # for t_idx in range(0, num_steps, 1):
-                    #     dest_pose2d_fig_path = os.path.join(dest_for_paper_vis_folder, "s_idx_"+str(s_idx)+"_bs_idx_"+str(bs_idx)+"_pose2d_"+str(t_idx)+".png") 
-                    #     plot_pose_2d_for_paper(reprojected_pred_jnts2d_list[0, t_idx].reshape(-1, 2).detach().cpu().numpy(), dest_pose2d_fig_path) 
-
-
-                    # Plot for multi-view 2D sequences 
-                    num_views = reprojected_pred_jnts2d_list.shape[0] 
-                    num_steps = reprojected_pred_jnts2d_list.shape[1] 
-                    for view_idx in range(num_views):
-                        for t_idx in range(0, num_steps, 1):
-                            dest_pose2d_fig_path = os.path.join(dest_for_paper_vis_folder, \
-                                "s_idx_"+str(s_idx)+"_bs_idx_"+str(bs_idx)+"_pose2d_"+"view_"+str(view_idx)+"_t_"+str(t_idx)+".png") 
-                            plot_pose_2d_for_paper(reprojected_pred_jnts2d_list[view_idx, t_idx].reshape(-1, 2).detach().cpu().numpy(), dest_pose2d_fig_path) 
-
-                    import pdb 
-                    pdb.set_trace() 
                  
-
                 # ours_mv_2d_for_eval = self.gen_multi_view_2d_seq_for_eval(pred_smpl_jnts18, scale_val_list[bs_idx]) # K X T X (18*2) 
                 # ours_mv_2d_for_eval = torch.cat((pred_for_vis[0, 1:2], pred_for_vis[0, 3:4]), dim=0) # 2 X T X (18*2) 
                 ours_mv_2d_for_eval = pred_for_vis.clone()[0, 1:] 
@@ -2389,82 +2336,6 @@ class Trainer(object):
                         dest_mas_2d_res_path = os.path.join(dest_mas_2d_folder, str(s_idx)+"_sample"+str(bs_idx)+"_eval.npy")
                         np.save(dest_mas_2d_res_path, mas_mv_2d_for_eval.detach().cpu().numpy())
 
-                if self.opt.gen_vis_res_for_demo:
-                    # Prepare videos for comparisons. 
-                    if "nicole" in self.youtube_data_npz_folder:
-                        dest_for_demo_res_folder = "/move/u/jiamanli/for_cvpr25_lift_demo/nicole"
-
-                        ori_rendered_vid_folder = "/move/u/jiamanli/final_cvpr25_for_demo/nicole_for_vis_fast_blender_video_res"
-                    elif "AIST" in self.youtube_data_npz_folder:
-                        dest_for_demo_res_folder = "/move/u/jiamanli/for_cvpr25_lift_demo/AIST"
-
-                        ori_rendered_vid_folder = "/move/u/jiamanli/final_cvpr25_for_demo/AIST_for_vis_blender_video_res"
-                    elif "steezy" in self.youtube_data_npz_folder:
-                        dest_for_demo_res_folder = "/move/u/jiamanli/for_cvpr25_lift_demo/steezy"
-
-                        ori_rendered_vid_folder = "/move/u/jiamanli/final_cvpr25_for_demo/nicole_for_vis_fast_blender_video_res"
-
-                    if "s_idx" in val_data_dict:
-                        start_idx = val_data_dict['s_idx'][bs_idx]
-                        end_idx = val_data_dict['e_idx'][bs_idx]
-
-                        if torch.is_tensor(start_idx):
-                            start_idx = start_idx.item()
-                            end_idx = end_idx.item() 
-                    else:
-                        start_idx = 0 
-                        end_idx = 120 * 2 # For AIST, 60 fps data. 
-
-                    # Gather original RGB images 
-                    dest_for_ori_img_frames_folder = os.path.join(dest_for_demo_res_folder, "ori_img_frames")
-                    # self.load_ori_rgb_images(val_data_dict, dest_for_ori_img_frames_folder)
-
-                    # Gather 2D pose sequences visualizations aligned with original image resolution 
-                    dest_motion_2d_vid_folder = os.path.join(dest_for_demo_res_folder, "input_2d_pose_videos") 
-                    if not os.path.exists(dest_motion_2d_vid_folder):
-                        os.makedirs(dest_motion_2d_vid_folder) 
-                    dest_motion2d_vid_path = os.path.join(dest_motion_2d_vid_folder,  \
-                        str(s_idx)+"_sample_"+str(bs_idx)+"_start_"+str(start_idx)+"_end_"+str(end_idx)+val_data_dict['seq_name'][0].replace(".npz", "_pose2d.mp4"))
-                    visualize_pose_sequence_to_video_for_demo(de_gt_2d_for_vis[bs_idx, 0].reshape(-1, 18, 2).detach().cpu().numpy(), dest_motion2d_vid_path) # T X 120 X (J*3)
-
-                    # Gather multi-view 2D pose sequences visualizations aligned with original image resolution 
-                    dest_motion_2d_vid_folder = os.path.join(dest_for_demo_res_folder, "output_mv_2d_pose_videos") 
-                    if not os.path.exists(dest_motion_2d_vid_folder):
-                        os.makedirs(dest_motion_2d_vid_folder) 
-                    
-                    num_views_for_vis = de_pred_2d_for_vis.shape[1]
-                 
-                    for tmp_v_idx in range(num_views_for_vis):
-                        dest_motion2d_vid_path = os.path.join(dest_motion_2d_vid_folder,  \
-                            str(s_idx)+"_sample_"+str(bs_idx)+"_start_"+str(start_idx)+"_end_"+str(end_idx)+val_data_dict['seq_name'][0].replace(".npz", \
-                                "_view_"+str(tmp_v_idx)+"_out_mv_pose2d.mp4"))
-                        visualize_pose_sequence_to_video_for_demo(de_pred_2d_for_vis[bs_idx, tmp_v_idx].reshape(-1, 18, 2).detach().cpu().numpy(), dest_motion2d_vid_path) # T X 120 X (J*3)
-
-                    # Move rendered video to the same folder for comparisons 
-                    # ori_rendered_vid_folder = "/move/u/jiamanli/final_cvpr25_opt_3d_w_multiview_diffusion"
-                    
-                    # dest_rendered_vid_folder = os.path.join(dest_for_demo_res_folder, "rendered_videos")
-                    # if not os.path.exists(dest_rendered_vid_folder):
-                    #     os.makedirs(dest_rendered_vid_folder) 
-
-                    # ori_vid_path = os.path.join(ori_rendered_vid_folder, str(s_idx)+"_sample_"+str(bs_idx)+"_objs.mp4")
-                    # pattern = os.path.join(ori_rendered_vid_folder, f"{s_idx}_sample_{bs_idx}_objs*.mp4")
-                    # # Use glob to find matching files
-                    # ori_matching_files = glob.glob(pattern)
-                   
-                    # for ori_vid_path in ori_matching_files:
-                    #     tag = ori_vid_path.split("/")[-1].split("_objs_")[1]
-                    #     dest_vid_path = os.path.join(dest_rendered_vid_folder, \
-                    #         str(s_idx)+"_sample_"+str(bs_idx)+"_start_"+str(start_idx)+"_end_"+str(end_idx)+val_data_dict['seq_name'][0].replace(".npz", "")+tag)
-                    #     shutil.copy(ori_vid_path, dest_vid_path) 
-
-                    # Visualize root trajectories for comparisons 
-                    # dest_for_root_traj_vis_folder = os.path.join(dest_for_demo_res_folder, "root_traj3D_vis")
-                    # self.prep_global_traj_cmp_vis(pred_smpl_jnts18, gt_smpl_jnts18, wham_pred_smpl_jnts18, aligned_motionbert_jnts18, \
-                    #     vposer2d_pred_smpl_jnts18, s_idx, bs_idx, dest_for_root_traj_vis_folder)
-
-
-
                 if not self.eval_w_best_mpjpe:
                     # dest_vid_3d_path_global = os.path.join(dest_res3d_npy_folder, \
                     #         str(s_idx)+"_sample_"+str(bs_idx)+"_jpos3d_ours")
@@ -2610,31 +2481,6 @@ class Trainer(object):
                                 faces=skel_faces) 
 
                             curr_mesh.export(skin_mesh_out)
-
-                # if self.opt.gen_vis_res_for_demo:
-                #     # Prepare videos for comparisons. 
-                #     dest_for_demo_res_folder = "/move/u/jiamanli/for_cvpr25_lift_demo/"
-
-                #     # Gather original RGB images 
-                #     dest_for_ori_img_frames_folder = os.path.join(dest_for_demo_res_folder, "ori_img_frames")
-                #     # self.load_ori_rgb_images(val_data_dict, dest_for_demo_res_folder)
-
-                #     # Gather 2D pose sequences visualizations aligned with original image resolution 
-                #     dest_motion_2d_vid_folder = os.path.join(dest_for_demo_res_folder, "motion_2d_videos") 
-
-                #     # Move rendered video to the same folder for comparisons 
-                #     ori_rendered_vid_folder = "/move/u/jiamanli/final_cvpr25_opt_3d_w_multiview_diffusion"
-                #     dest_rendered_vid_folder = os.path.join(dest_for_demo_res_folder, "rendered_videos")
-
-                #     # Visualize root trajectories for comparisons 
-                #     dest_for_root_traj_vis_folder = os.path.join(dest_for_demo_res_folder, "root_traj3D_vis")
-                #     self.prep_global_traj_cmp_vis(pred_smpl_jnts18, gt_smpl_jnts18, wham_pred_smpl_jnts18, aligned_motionbert_jnts18, \
-                #         vposer2d_pred_smpl_jnts18, s_idx, bs_idx, dest_for_root_traj_vis_folder)
-
-
-                    # import pdb 
-                    # pdb.set_trace()  
-            # break 
     
     def eval_3d_w_multiview_diffusion_for_interaction(self):
         # Load line-conditioned model. 
@@ -2667,19 +2513,6 @@ class Trainer(object):
         self.prep_evaluation_metric_list_for_interaction() 
         
         for s_idx, val_data_dict in enumerate(test_loader): 
-
-            # if s_idx not in [3, 21, 25]:
-            #     continue 
-
-            # if s_idx % 4 != 0:
-            #     continue 
-
-            if s_idx not in [40]:
-                continue 
-
-            # if s_idx not in [4, 16, 20, 48]:
-            #     continue 
-
           
             direct_sampled_epi_seq_2d, epi_line_cond_seq_2d, \
             val_bs, val_num_views, val_num_steps, val_data, \
@@ -2753,25 +2586,6 @@ class Trainer(object):
                                         combined_jnts3d.to(cam_rot_mat.device)*obj_scale_val_list[bs_idx]) # K X T X (18*2)
 
                 pred_for_vis = reprojected_pred_jnts2d_list.reshape(1, val_num_views, 120, -1)   
-
-                vis_for_paper = False 
-                if vis_for_paper:
-                    dest_for_paper_vis_folder = "./for_cvpr25_paper_vis_2d_sequences_omomo_sample3_sample21_sample25"
-                    if not os.path.exists(dest_for_paper_vis_folder):
-                        os.makedirs(dest_for_paper_vis_folder) 
-
-                    # pose_sequence = epi_line_cond_seq_2d 
-                    # line_coeffs =  
-                    # visualize_pose_and_lines_for_paper(pose_sequence, line_coeffs, output_folder, vis_gt=False, epipoles=None)
-                    
-                    # Plot for single pose 
-                    num_steps = reprojected_pred_jnts2d_list.shape[1] 
-                    for t_idx in range(0, num_steps, 1):
-                        dest_pose2d_fig_path = os.path.join(dest_for_paper_vis_folder, "s_idx_"+str(s_idx)+"_bs_idx_"+str(bs_idx)+"_pose2d_"+str(t_idx)+".png") 
-                        plot_pose_2d_omomo_for_paper(reprojected_pred_jnts2d_list[0, t_idx].reshape(-1, 2).detach().cpu().numpy(), dest_pose2d_fig_path) 
-
-                    # import pdb 
-                    # pdb.set_trace() 
 
                 # Align our results to GT 
                 pred_smpl_jnts18, pred_obj_kpts, pred_scale_factor_for_human = self.align_motionbert_to_ours(pred_smpl_jnts18.detach().cpu().numpy(), \
@@ -2884,62 +2698,6 @@ class Trainer(object):
                         obj_mpjpe_smplify=smplify_obj_mpjpe, obj_trans_err_smplify=smplify_obj_trans_err) 
 
                 self.print_mean_metrics_for_interaction() 
-
-                if self.opt.gen_vis_res_for_demo:
-                    # Prepare videos for comparisons. 
-                   
-                    dest_for_demo_res_folder = "/move/u/jiamanli/for_cvpr25_lift_demo/omomo"
-
-                        # ori_rendered_vid_folder = "/move/u/jiamanli/final_cvpr25_for_demo/nicole_for_vis_fast_blender_video_res"
-                  
-
-                    if "s_idx" in val_data_dict:
-                        start_idx = val_data_dict['s_idx'][bs_idx]
-                        end_idx = val_data_dict['e_idx'][bs_idx]
-
-                        if torch.is_tensor(start_idx):
-                            start_idx = start_idx.item()
-                            end_idx = end_idx.item() 
-                    else:
-                        start_idx = 0 
-                        end_idx = 120 
-
-                    # Gather 2D pose sequences visualizations aligned with original image resolution 
-                    dest_motion_2d_vid_folder = os.path.join(dest_for_demo_res_folder, "input_2d_pose_videos") 
-                    if not os.path.exists(dest_motion_2d_vid_folder):
-                        os.makedirs(dest_motion_2d_vid_folder) 
-                    dest_motion2d_vid_path = os.path.join(dest_motion_2d_vid_folder,  \
-                        str(s_idx)+"_sample_"+str(bs_idx)+"_start_"+str(start_idx)+"_end_"+str(end_idx)+val_data_dict['seq_name'][0]+"_pose2d.mp4")
-                    visualize_pose_sequence_to_video_for_demo_interaction(de_gt_2d_for_vis[bs_idx, 0].reshape(-1, 23, 2).detach().cpu().numpy(), dest_motion2d_vid_path) # T X 120 X (J*3)
-
-
-                    # import pdb 
-                    # pdb.set_trace() 
-                    # Move rendered video to the same folder for comparisons 
-                    # ori_rendered_vid_folder = "/move/u/jiamanli/final_cvpr25_opt_3d_w_multiview_diffusion"
-                    
-                    # dest_rendered_vid_folder = os.path.join(dest_for_demo_res_folder, "rendered_videos")
-                    # if not os.path.exists(dest_rendered_vid_folder):
-                    #     os.makedirs(dest_rendered_vid_folder) 
-
-                    # ori_vid_path = os.path.join(ori_rendered_vid_folder, str(s_idx)+"_sample_"+str(bs_idx)+"_objs.mp4")
-                    # pattern = os.path.join(ori_rendered_vid_folder, f"{s_idx}_sample_{bs_idx}_objs*.mp4")
-                    # # Use glob to find matching files
-                    # ori_matching_files = glob.glob(pattern)
-                   
-                    # for ori_vid_path in ori_matching_files:
-                    #     tag = ori_vid_path.split("/")[-1].split("_objs_")[1]
-                    #     dest_vid_path = os.path.join(dest_rendered_vid_folder, \
-                    #         str(s_idx)+"_sample_"+str(bs_idx)+"_start_"+str(start_idx)+"_end_"+str(end_idx)+val_data_dict['seq_name'][0].replace(".npz", "")+tag)
-                    #     shutil.copy(ori_vid_path, dest_vid_path) 
-
-                    # # Visualize root trajectories for comparisons 
-                    # dest_for_root_traj_vis_folder = os.path.join(dest_for_demo_res_folder, "root_traj3D_vis")
-                    # self.prep_global_traj_cmp_vis(pred_smpl_jnts18, gt_smpl_jnts18, wham_pred_smpl_jnts18, aligned_motionbert_jnts18, \
-                    #     vposer2d_pred_smpl_jnts18, s_idx, bs_idx, dest_for_root_traj_vis_folder)
-
-
-              
 
                 # curr_seq_len = int(actual_seq_len[bs_idx].detach().cpu().numpy()[0])-1 
                 curr_actual_seq_len = int(actual_seq_len[bs_idx].detach().cpu().numpy()[0])-1 
@@ -3064,42 +2822,6 @@ class Trainer(object):
         self.prep_evaluation_metric_list() 
         
         for s_idx, val_data_dict in enumerate(test_loader): 
-            if self.opt.gen_vis_res_for_demo:
-                val_data = val_data_dict['normalized_jnts2d'].float() # BS X T X 18 X 2 
-                
-                de_gt_2d_for_vis = de_normalize_pose2d(val_data) # BSX T X 18 X 2 
-       
-                # Prepare videos for comparisons. 
-               
-                dest_for_demo_res_folder = "/move/u/jiamanli/for_cvpr25_lift_demo/cat_input_videos"
-
-                bs_idx = 0 
-                if "s_idx" in val_data_dict:
-                    start_idx = val_data_dict['s_idx'][bs_idx]
-                    end_idx = val_data_dict['e_idx'][bs_idx]
-
-                    if torch.is_tensor(start_idx):
-                        start_idx = start_idx.item()
-                        end_idx = end_idx.item() 
-                else:
-                    start_idx = 0 
-                    end_idx = 120  # For AIST, 60 fps data. 
-
-                # Gather original RGB images 
-                # dest_for_ori_img_frames_folder = os.path.join(dest_for_demo_res_folder, "ori_img_frames")
-                # self.load_ori_rgb_images(val_data_dict, dest_for_ori_img_frames_folder)
-
-                bs_idx = 0 
-                # Gather 2D pose sequences visualizations aligned with original image resolution 
-                dest_motion_2d_vid_folder = os.path.join(dest_for_demo_res_folder, "input_2d_pose_videos") 
-                if not os.path.exists(dest_motion_2d_vid_folder):
-                    os.makedirs(dest_motion_2d_vid_folder) 
-                dest_motion2d_vid_path = os.path.join(dest_motion_2d_vid_folder,  \
-                    str(s_idx)+"_sample_"+str(bs_idx)+"_start_"+str(start_idx)+"_end_"+str(end_idx)+val_data_dict['seq_name'][0].replace(".npz", "_pose2d.mp4"))
-                visualize_pose_sequence_to_video_for_demo(de_gt_2d_for_vis[bs_idx].reshape(-1, 17, 2).detach().cpu().numpy(), \
-                    dest_motion2d_vid_path, for_animal=True) # T X 120 X (J*3)
-           
-                continue 
            
             direct_sampled_epi_seq_2d, epi_line_cond_seq_2d, opt_jpos3d_18_list, cam_extrinsic, \
             val_bs, val_num_views, val_num_steps, val_data, actual_seq_len, \
@@ -3158,25 +2880,6 @@ class Trainer(object):
                                 cam_rot_mat[bs_idx], cam_trans[bs_idx], \
                                 smal_opt_jnts3d[bs_idx].to(cam_rot_mat.device)*scale_val_list[bs_idx]) # K X T X (18*2)
                 pred_for_vis = reprojected_pred_jnts2d_list.reshape(1, val_num_views, -1, 17*2)  
-
-                vis_for_paper = False 
-                if vis_for_paper:
-                    dest_for_paper_vis_folder = "./for_cvpr25_paper_vis_2d_sequences_cat_sample28"
-                    if not os.path.exists(dest_for_paper_vis_folder):
-                        os.makedirs(dest_for_paper_vis_folder) 
-
-                    # pose_sequence = epi_line_cond_seq_2d 
-                    # line_coeffs =  
-                    # visualize_pose_and_lines_for_paper(pose_sequence, line_coeffs, output_folder, vis_gt=False, epipoles=None)
-                    
-                    # Plot for single pose 
-                    num_steps = reprojected_pred_jnts2d_list.shape[1] 
-                    for t_idx in range(0, num_steps, 1):
-                        dest_pose2d_fig_path = os.path.join(dest_for_paper_vis_folder, "s_idx_"+str(s_idx)+"_bs_idx_"+str(bs_idx)+"_pose2d_"+str(t_idx)+".png") 
-                        plot_pose_2d_cat_for_paper(reprojected_pred_jnts2d_list[0, t_idx].reshape(-1, 2).detach().cpu().numpy(), dest_pose2d_fig_path) 
-
-                    # import pdb 
-                    # pdb.set_trace() 
 
                 # Visualization for 2D joint positions. 
                 de_direct_sampled_pred_2d_for_vis = self.gen_multiview_vis_res(direct_sampled_seq_2d_for_vis[bs_idx:bs_idx+1], \
@@ -3287,13 +2990,6 @@ class Trainer(object):
                     eval_dict['jpos2d_err'] = str(jpos2d_err)
                     eval_dict['centered_jpos2d_err'] = str(centered_jpos2d_err) 
                 
-                    # # Elepose
-                    # eval_dict['elepose_mpjpe'] = str(elepose_mpjpe)
-                    # eval_dict['elepose_pa_mpjpe'] = str(elepose_pa_mpjpe)
-                    # eval_dict['elepose_trans_err'] = str(elepose_trans_err)
-                    # eval_dict['elepose_jpos2d_err'] = str(elepose_jpos2d_err)
-                    # eval_dict['elepose_jpos3d_err'] = str(elepose_jpos3d_err) 
-                    # eval_dict['elepose_centered_jpos2d_err'] = str(elepose_centered_jpos2d_err)
 
                     # # MAS
                     eval_dict['mas_mpjpe'] = str(mas_mpjpe)
@@ -3409,75 +3105,6 @@ class Trainer(object):
 
                             curr_mesh.export(skin_mesh_out)
         
-    def cond_sample_res(self):
-        weights = os.listdir(self.results_folder)
-        weights_paths = [os.path.join(self.results_folder, weight) for weight in weights]
-        weight_path = max(weights_paths, key=os.path.getctime)
-   
-        print(f"Loaded weight: {weight_path}")
-
-        milestone = weight_path.split("/")[-1].split("-")[-1].replace(".pt", "")
-        
-        self.load(milestone)
-        self.ema.ema_model.eval()
-      
-        if self.test_on_train:
-            test_loader = torch.utils.data.DataLoader(
-                self.ds, batch_size=8, shuffle=False,
-                num_workers=0, pin_memory=True, drop_last=False) 
-        else:
-            test_loader = torch.utils.data.DataLoader(
-                self.val_ds, batch_size=8, shuffle=False,
-                num_workers=0, pin_memory=True, drop_last=False) 
-        
-        with torch.no_grad():
-            for s_idx, val_data_dict in enumerate(test_loader):
-                val_data = val_data_dict['normalized_jnts2d'].float().cuda()
-
-                val_bs, val_num_steps, num_joints, _ = val_data.shape 
-                val_data = val_data.reshape(val_bs, val_num_steps, -1) # BS X T X D(18*2)
-
-                cond_mask = None 
-
-                if self.opt.input_first_human_pose:
-                    cond_mask = self.prep_temporal_condition_mask(val_data)
-
-                # Generate padding mask 
-                actual_seq_len = val_data_dict['seq_len'] + 1 # BS, + 1 since we need additional timestep for noise level 
-                tmp_mask = torch.arange(self.window+1).expand(val_data.shape[0], \
-                self.window+1) < actual_seq_len[:, None].repeat(1, self.window+1)
-                # BS X max_timesteps
-                padding_mask = tmp_mask[:, None, :].to(val_data.device)
-
-                if self.add_language_condition:
-                    text_anno_data = val_data_dict['text']
-                    language_input = self.encode_text(text_anno_data) # BS X 512 
-                    language_input = language_input.to(data.device)
-                else:
-                    language_input = None 
-
-                dest_vis_folder_path = "/viscam/projects/vimotion/hope_final_work_opt3d_res/AIST_only_cond_init_pose_2d_res" 
-
-                num_samples_per_seq = 10
-                for sample_idx in range(num_samples_per_seq):
-                    all_res_list = self.ema.ema_model.sample(val_data, \
-                    cond_mask=cond_mask, padding_mask=padding_mask, \
-                    language_input=language_input) # BS X T X D 
-
-                    # all_res_list = self.ema.ema_model.ddim_sample(val_data, \
-                    # cond_mask=cond_mask, padding_mask=padding_mask, \
-                    # language_input=language_input) # BS X T X D 
-                
-                    vis_folder_tag = str(milestone)+"_bidx_"+str(s_idx)+"_sample_cnt_"+str(sample_idx)
-                 
-                    if self.test_on_train:
-                        vis_folder_tag = vis_folder_tag + "_on_train"
-
-                    # vis_folder_tag = "ddim_sample_" + vis_folder_tag 
-                    
-                    self.gen_vis_res(all_res_list, vis_folder_tag, actual_seq_len, \
-                            dest_vis_folder_path=dest_vis_folder_path) 
-
     def gen_vis_res(self, motion_2d_seq, vis_folder_tag, actual_seq_len, dest_vis_folder_path=None, vis_gt=False):
         # motion_2d_seq: BS X T X D (18 * 2) 
         # actual_seq_len: BS 
