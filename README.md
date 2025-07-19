@@ -45,7 +45,7 @@ Please download all the [data](https://drive.google.com/drive/folders/1ZMtYQEWw2
 Please put the code [smal_model](https://github.com/silviazuffi/smalst/tree/master/smal_model) in the folder diffusion_motion_2d/m2d/model/. 
 
 ## Datasets 
-We currently provided processed data for AIST in the above link. For original AIST videos, please check the original dataset [AIST](https://aistdancedb.ongaaccel.jp/list_of_related_publications/). For 3D ground truth motion, please check [AIST++](https://google.github.io/aistplusplus_dataset/download.html). 
+We currently provided processed data for AIST in the above link. For original AIST videos, please check the original dataset [AIST](https://aistdancedb.ongaaccel.jp/list_of_related_publications/). For 3D ground truth motion, please download from [AIST++](https://google.github.io/aistplusplus_dataset/download.html) (3D ground truth is needed if you want to do quantitative evaluation). 
 
 Other datasets will be uploaded soon. 
 
