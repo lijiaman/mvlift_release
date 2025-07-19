@@ -1,0 +1,10 @@
+python trainer_youtube_motion_2d.py \
+--project="/viscam/projects/mofitness/for_mvlift_release/mvlift_out" \
+--exp_name="aist_2d_w_line_cond_set1" \
+--wandb_pj_name="mvlift_release_step1_line_cond_2d_diffusion" \
+--entity="jiamanli" \
+--window=120 \
+--batch_size=32 \
+--youtube_train_val_json_path="/viscam/projects/mofitness/for_mvlift_release/datasets/AIST/processed_data/train_val_split.json" \
+--youtube_data_npz_folder="/viscam/projects/mofitness/for_mvlift_release/datasets/AIST/clip_vit_pose2d_res" \
+--train_2d_diffusion_w_line_cond 
