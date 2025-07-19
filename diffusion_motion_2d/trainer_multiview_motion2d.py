@@ -1820,6 +1820,8 @@ class Trainer(object):
         milestone = weight_path.split("/")[-1].split("-")[-1].replace(".pt", "")
         milestone = "3"
 
+        print(f"Actually Loaded weight milestone: {milestone}")
+
         self.load(milestone)
         self.ema.ema_model.eval()
        
@@ -3205,7 +3207,7 @@ def run_train(opt, device):
    
     diffusion_model.to(device)
 
-    train_num_steps = 500000 
+    train_num_steps = 50000 
 
     trainer = Trainer(
         opt,

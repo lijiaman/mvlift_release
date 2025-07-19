@@ -40,10 +40,14 @@ Please download [SMPL-X](https://smpl-x.is.tue.mpg.de/index.html) and put the mo
 
 If you would like to generate visualizations, please download [Blender](https://www.blender.org/download/) first. And modify ```BLENDER_PATH, BLENDER_UTILS_ROOT_FOLDER, BLENDER_SCENE_FOLDER``` in line 8-10 of ```mvlift_release/diffusion_motion_2d/m2d/vis/blender_vis_mesh_motion.py```. 
 
-Please download all the [data]() and put ```processed_data``` to your desired location ```your_path/processed_data```.  
+Please download all the [data](https://drive.google.com/drive/folders/1ZMtYQEWw2wHJcWmJeNTlaoGHLbtZdjLO?usp=sharing) and put ```processed_data``` to your desired location ```your_path/processed_data```.  
+
+Please put the code [smal_model](https://github.com/silviazuffi/smalst/tree/master/smal_model) in the folder diffusion_motion_2d/m2d/model/. 
 
 ## Datasets 
+We currently provided processed data for AIST in the above link. For original AIST videos, please check the original dataset [AIST](https://aistdancedb.ongaaccel.jp/list_of_related_publications/). For 3D ground truth motion, please check [AIST++](https://google.github.io/aistplusplus_dataset/download.html). 
 
+Other datasets will be uploaded soon. 
 
 ## Training and Evaluation Instructions
 ### Step 1: Train a line-conditioned 2D motion diffusion model  
