@@ -35,35 +35,37 @@ python setup.py develop
 ```
 
 
-### Prerequisites 
+## Prerequisites 
 Please download [SMPL-X](https://smpl-x.is.tue.mpg.de/index.html) and put the model to ```data/smpl_all_models/```.
 
 If you would like to generate visualizations, please download [Blender](https://www.blender.org/download/) first. And modify ```BLENDER_PATH, BLENDER_UTILS_ROOT_FOLDER, BLENDER_SCENE_FOLDER``` in line 8-10 of ```mvlift_release/diffusion_motion_2d/m2d/vis/blender_vis_mesh_motion.py```. 
 
 Please download all the [data]() and put ```processed_data``` to your desired location ```your_path/processed_data```.  
 
-### Datasets 
+## Datasets 
 
 
-## Step 1: Train a line-conditioned 2D motion diffusion model  
+## Training and Evaluation Instructions
+### Step 1: Train a line-conditioned 2D motion diffusion model  
 ```
 cd aist_scripts/
 sh step1_train_line_cond_2d_diffusion.sh 
 ```
 
-## Step 2: Generate a synthetic 3D motion dataset by optimization using the learned line-codnitioned 2D diffusion model   
+### Step 2: Generate a synthetic 3D motion dataset by optimization using the learned line-codnitioned 2D diffusion model   
 ```
 cd aist_scripts/
 sh step2_gen_syn3d_data.sh 
 ```
 
-## Step 3: Train a multi-view 2D motion diffusion model 
+### Step 3: Train a multi-view 2D motion diffusion model 
 ```
 cd aist_scripts/
 sh step3_train_multiview_2d_diffusion.sh 
 ```
 
-## Step 4: Test the final learned multi-view 2D motion diffusion model 
+### Step 4: Test the final learned multi-view 2D motion diffusion model 
+Note that to run quantitative evaluation using AIST ground truth motion, you need to prepare the AIST++ dataset and modify the data path in diffusion_motion_2d/m2d/data/aist_motion3d_dataset.py.  
 ```
 cd aist_scripts/
 sh step4_eval_multiview_2d_diffusion.sh 
@@ -72,3 +74,25 @@ To generate skeleton visualization and prepare human meshes for Blender visualiz
 ```
 python gen_blender_vis_res.py
 ```
+
+### Citation
+```
+@inproceedings{li2025lifting,
+  title={Lifting motion to the 3d world via 2d diffusion},
+  author={Li, Jiaman and Liu, C Karen and Wu, Jiajun},
+  booktitle={Proceedings of the Computer Vision and Pattern Recognition Conference},
+  pages={17518--17528},
+  year={2025}
+}
+```
+
+### Related Repos
+We adapted some code from other repos in data processing, learning, evaluation, etc. Please check these useful repos. 
+```
+https://github.com/lijiaman/omomo_release
+https://github.com/lijiaman/egoego_release
+https://github.com/EricGuo5513/text-to-motion 
+https://github.com/lucidrains/denoising-diffusion-pytorch
+https://github.com/jihoonerd/Conditional-Motion-In-Betweening 
+https://github.com/lijiaman/motion_transformer 
+``` 
