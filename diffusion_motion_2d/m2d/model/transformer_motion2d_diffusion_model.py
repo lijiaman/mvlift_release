@@ -21,13 +21,10 @@ from m2d.vis.vis_jnts import plot_3d_motion, gen_2d_motion_vis, reverse_perspect
 
 from m2d.utils.projection import camera_to_world_jnts3d
 
-from m2d.model.smpl_fit2joints3d import SMPLRegressor
-from m2d.model.smpl_aligner import SMLPFitter 
 
 from m2d.model.smal_fitter import SmalFitter 
 from m2d.model.smal_fitter_2d import SmalFitter2D 
 
-# from m2d.model.smpl_aligner_w_vposer import SMLPVPoserAligner 
 
 from torch.optim import Adam
 
